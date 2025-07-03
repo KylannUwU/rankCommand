@@ -5,13 +5,17 @@ import os
 
 app = Flask(__name__)
 
-
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO_NAME = os.getenv("REPO_NAME")  
-BRANCH = os.getenv("BRANCH", "main")
+if not GITHUB_TOKEN:
+    raise ValueError("La variable de entorno GITHUB_TOKEN no está definida")
 
-if not GITHUB_TOKEN or not REPO_NAME:
-    raise ValueError("Faltan variables de entorno GITHUB_TOKEN o REPO_NAME")
+SECRET_TOKEN = os.getenv("KEYTW")
+if not SECRET_TOKEN:
+    raise ValueError("La variable de entorno KEYTW no está definida")
+
+# Fijos acá:
+REPO_NAME = "KylannUwU/rankCommand"
+BRANCH = "main"
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
@@ -33,15 +37,11 @@ def guardar_rangos_github(rangos_dict, sha, mensaje="Actualización de rangos"):
         if sha:
             repo.update_file(FILE_PATH, mensaje, contenido_nuevo, sha, branch=BRANCH)
         else:
-            # Si no existe el archivo, crea uno nuevo
             repo.create_file(FILE_PATH, mensaje, contenido_nuevo, branch=BRANCH)
         return True
     except Exception as e:
         print(f"Error guardando rangos en GitHub: {e}")
         return False
-
-# Token secreto para controlar acceso a !setrango
-SECRET_TOKEN = os.getenv("KEYTW")
 
 @app.route("/")
 def home():
@@ -51,15 +51,13 @@ def home():
 def obtener_rango():
     juego_actual = request.args.get("game", "").strip()
     if not juego_actual:
-        return "Error al obtener el juego nephuLost"
+        return "Falta el parámetro ?game=NombreDelJuego"
 
     rangos, _ = leer_rangos_github()
-    
     for juego, rango in rangos.items():
         if juego.lower() == juego_actual.lower():
-            return f"El rango actual de Nephu en {juego} es ➜ {rango}"
+            return f"El rango actual de Nephu en {juego} ➜ {rango}"
 
-   
     respuesta = [f"{j} ➜ {r}" for j, r in rangos.items()]
     return " | ".join(respuesta)
 
@@ -70,10 +68,10 @@ def set_rango():
     nuevo_rango = request.args.get("rango")
 
     if token != SECRET_TOKEN:
-        return "Oye, no puedes hacer eso nephuHmm"
+        return "No autorizado."
 
     if not juego or not nuevo_rango:
-        return "Faltan parámetros: game y rango nephuDerp"
+        return "Faltan parámetros: game y rango"
 
     rangos, sha = leer_rangos_github()
     rangos[juego] = nuevo_rango
@@ -81,9 +79,9 @@ def set_rango():
     exito = guardar_rangos_github(rangos, sha, mensaje=f"Actualización rango {juego}")
 
     if exito:
-        return f"Rango de {juego} actualizado a: {nuevo_rango}"
+        return f"✅ Rango de {juego} actualizado a: {nuevo_rango}"
     else:
-        return "Error al actualizar el juego nephuLost"
+        return "Error actualizando rangos en GitHub."
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
