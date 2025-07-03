@@ -21,7 +21,7 @@ def leer_rangos_github():
         datos = json.loads(contenido.decoded_content.decode())
         return datos, contenido.sha
     except Exception as e:
-        print(f"Error leyendo rangos desde GitHub: {e}")
+        print(f"Error leyendo rangos: {e}")
         return {}, None
 
 def guardar_rangos_github(datos, sha, mensaje="Actualización de rangos"):
@@ -33,7 +33,7 @@ def guardar_rangos_github(datos, sha, mensaje="Actualización de rangos"):
             repo.create_file(FILE_PATH, mensaje, contenido_nuevo, branch=BRANCH)
         return True
     except Exception as e:
-        print(f"Error guardando rangos en GitHub: {e}")
+        print(f"Error guardando rangos: {e}")
         return False
 
 @app.route("/")
@@ -53,7 +53,7 @@ def obtener_rango():
 
     # Si no hay query, tratamos de usar el juego actual (o mostrar todo)
     if not query:
-        return "❌ Por favor usa !rango seguido del nombre del juego o escribe una frase que contenga un juego."
+        return "nephuRage Por favor usa !rango seguido del nombre del juego o escribe una frase que contenga un juego."
 
     # Buscamos si query coincide exactamente con un juego
     for juego, rango in rangos.items():
@@ -85,12 +85,12 @@ def set_rango():
         return "No autorizado."
 
     if "," not in data:
-        return "❌ Formato incorrecto. Usa: juego, rango"
+        return "nephuRage Formato incorrecto, usa: Juego, Rango"
 
     juego_input, nuevo_rango = [x.strip() for x in data.split(",", 1)]
 
     if not juego_input or not nuevo_rango:
-        return "❌ Faltan datos. Asegúrate de escribir: juego, rango"
+        return "nephuRage Datos faltantes, usa: Juego, Rango"
 
     datos, sha = leer_rangos_github()
     rangos = datos.get("rangos", {})
@@ -114,9 +114,9 @@ def set_rango():
     exito = guardar_rangos_github(datos, sha, mensaje=f"Actualización rango {juego_input}")
 
     if exito:
-        return f"✅ Rango de {juego_input} actualizado a: {nuevo_rango}"
+        return f"nephuHype Rango de {juego_input} actualizado a: {nuevo_rango}"
     else:
-        return "Error actualizando rangos en GitHub."
+        return "Error actualizando rangos nephuLost."
 
 
 @app.route("/addrango", methods=["GET", "POST"])
@@ -129,12 +129,12 @@ def add_rango():
 
     partes = [x.strip() for x in data.split(",", 2)]
     if len(partes) != 3:
-        return "❌ Formato incorrecto. Usa: juego, rango, emote"
+        return "nephuRage Formato incorrecto. Usa: juego, rango, emote"
 
     juego, nuevo_rango, nuevo_emote = partes
 
     if not juego or not nuevo_rango or not nuevo_emote:
-        return "❌ Faltan datos. Asegúrate de escribir: juego, rango, emote"
+        return "nephuRage Faltan datos. Asegúrate de escribir: juego, rango, emote"
 
     datos, sha = leer_rangos_github()
     if "rangos" not in datos:
@@ -150,9 +150,9 @@ def add_rango():
     exito = guardar_rangos_github(datos, sha, mensaje=f"Agregado rango y emote para {juego}")
 
     if exito:
-        return f"✅ Juego {juego} añadido con rango y emote."
+        return f"nephuHype Juego {juego} y rango añadidos."
     else:
-        return "Error guardando juego y emote en GitHub."
+        return "Error guardando el juego nephuLost."
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
