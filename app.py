@@ -77,23 +77,37 @@ def set_rango():
     if "," not in data:
         return "❌ Formato incorrecto. Usa: juego, rango"
 
-    juego, nuevo_rango = [x.strip() for x in data.split(",", 1)]
+    juego_input, nuevo_rango = [x.strip() for x in data.split(",", 1)]
 
-    if not juego or not nuevo_rango:
+    if not juego_input or not nuevo_rango:
         return "❌ Faltan datos. Asegúrate de escribir: juego, rango"
 
     datos, sha = leer_rangos_github()
-    if "rangos" not in datos:
-        datos["rangos"] = {}
+    rangos = datos.get("rangos", {})
 
-    datos["rangos"][juego] = nuevo_rango
+    # Buscar juego en rangos ignorando mayúsculas/minúsculas
+    juego_clave = None
+    for clave in rangos.keys():
+        if clave.lower() == juego_input.lower():
+            juego_clave = clave
+            break
 
-    exito = guardar_rangos_github(datos, sha, mensaje=f"Actualización rango {juego}")
+    if juego_clave:
+        # Actualizar rango en la clave encontrada
+        datos["rangos"][juego_clave] = nuevo_rango
+    else:
+        # Si no existe, agregar con el nombre tal cual lo escribió el usuario
+        if "rangos" not in datos:
+            datos["rangos"] = {}
+        datos["rangos"][juego_input] = nuevo_rango
+
+    exito = guardar_rangos_github(datos, sha, mensaje=f"Actualización rango {juego_input}")
 
     if exito:
-        return f"✅ Rango de {juego} actualizado a: {nuevo_rango}"
+        return f"✅ Rango de {juego_input} actualizado a: {nuevo_rango}"
     else:
         return "Error actualizando rangos en GitHub."
+
 
 @app.route("/addrango", methods=["GET", "POST"])
 def add_rango():
