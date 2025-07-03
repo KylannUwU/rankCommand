@@ -51,29 +51,34 @@ def obtener_rango():
         emote = emotes.get(juego.lower(), "")
         return f"{rango} {emote}" if emote else rango
 
-    # Si no hay query, tratamos de usar el juego actual (o mostrar todo)
-    if not query:
-        return "nephuRage Por favor usa !rango seguido del nombre del juego o escribe una frase que contenga un juego."
+    juego_encontrado = None
 
-    # Buscamos si query coincide exactamente con un juego
-    for juego, rango in rangos.items():
-        if juego.lower() == query.lower():
-            rango_emotivo = agregar_emote(juego, rango)
-            return f"El rango actual de Nephu en {juego} ➜ {rango_emotivo}"
-
-    # Si no es exacto, buscamos si el query contiene el nombre de algún juego
+    # Primero: buscar si el mensaje contiene algún juego de la lista
     query_lower = query.lower()
-    for juego, rango in rangos.items():
+    for juego in rangos:
         if juego.lower() in query_lower:
-            rango_emotivo = agregar_emote(juego, rango)
-            return f"El rango actual de Nephu en {juego} ➜ {rango_emotivo}"
+            juego_encontrado = juego
+            break
 
-    # Si no encontramos nada, mostramos todos
+    # Segundo: si no hay query o no coincide con nada, usar juego actual si viene desde un bot
+    if not juego_encontrado and not query:
+        # Aquí puedes usar una lógica más completa para detectar el juego desde una variable externa
+        # Por ahora asumimos que se pasará ?game=Nombre si viene de StreamElements
+        juego_encontrado = None  # no se encontró nada
+
+    # Si encontramos juego (ya sea por mensaje o por juego actual)
+    if juego_encontrado:
+        rango = rangos.get(juego_encontrado)
+        rango_emotivo = agregar_emote(juego_encontrado, rango)
+        return f"El rango actual de Nephu en {juego_encontrado} ➜ {rango_emotivo}"
+
+    # Si no encontramos nada, mostrar todos
     respuesta = [
         f"{j} ➜ {agregar_emote(j, r)}"
         for j, r in rangos.items()
     ]
     return " | ".join(respuesta)
+
 
 
 @app.route("/setrango", methods=["GET", "POST"])
