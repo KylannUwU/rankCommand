@@ -42,10 +42,7 @@ def home():
 
 @app.route("/rango")
 def obtener_rango():
-    juego_actual = request.args.get("game", "").strip()
-    if not juego_actual:
-        return "Falta el parámetro ?game=NombreDelJuego"
-
+    query = request.args.get("game", "").strip()
     datos, _ = leer_rangos_github()
     rangos = datos.get("rangos", {})
     emotes = datos.get("emotes", {})
@@ -54,17 +51,30 @@ def obtener_rango():
         emote = emotes.get(juego.lower(), "")
         return f"{rango} {emote}" if emote else rango
 
+    # Si no hay query, tratamos de usar el juego actual (o mostrar todo)
+    if not query:
+        return "❌ Por favor usa !rango seguido del nombre del juego o escribe una frase que contenga un juego."
+
+    # Buscamos si query coincide exactamente con un juego
     for juego, rango in rangos.items():
-        if juego.lower() == juego_actual.lower():
+        if juego.lower() == query.lower():
             rango_emotivo = agregar_emote(juego, rango)
             return f"El rango actual de Nephu en {juego} ➜ {rango_emotivo}"
 
-    # Si no está, mostrar todos con emotes
+    # Si no es exacto, buscamos si el query contiene el nombre de algún juego
+    query_lower = query.lower()
+    for juego, rango in rangos.items():
+        if juego.lower() in query_lower:
+            rango_emotivo = agregar_emote(juego, rango)
+            return f"El rango actual de Nephu en {juego} ➜ {rango_emotivo}"
+
+    # Si no encontramos nada, mostramos todos
     respuesta = [
         f"{j} ➜ {agregar_emote(j, r)}"
         for j, r in rangos.items()
     ]
     return " | ".join(respuesta)
+
 
 @app.route("/setrango", methods=["GET", "POST"])
 def set_rango():
