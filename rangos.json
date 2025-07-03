@@ -3,5 +3,6 @@
   "Marvel Rivals": "Platino I nephuRage",
   "Valorant": "Diamante I nephuGun",
   "League Of Legends": "Flex: Esmeralda I nephuFine | Solo/Duo: Esmeralda II nephuLero",
-  "TeamFight Tactics": "Duo: Unranked nephuBless | Individual: Unranked nephuMlem"
+  "TeamFight Tactics": "Duo: Unranked nephuBless | Individual: Unranked nephuMlem",
+  "$(game)": "$(1:)}"
 }
