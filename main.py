@@ -1,33 +1,66 @@
-from flask import Flask, request, jsonify
-from pymongo import MongoClient
+from flask import Flask, request
+from github import Github
+import json
 import os
 
 app = Flask(__name__)
 
-MONGO_URI = os.getenv("MONGO_URI")
-client = MongoClient(MONGO_URI)
-db = client['rangosDB']
-collection = db['rangos']
 
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO_NAME = os.getenv("REPO_NAME")  
+BRANCH = os.getenv("BRANCH", "main")
+
+if not GITHUB_TOKEN or not REPO_NAME:
+    raise ValueError("Faltan variables de entorno GITHUB_TOKEN o REPO_NAME")
+
+g = Github(GITHUB_TOKEN)
+repo = g.get_repo(REPO_NAME)
+
+FILE_PATH = "rangos.json"
+
+def leer_rangos_github():
+    try:
+        contenido = repo.get_contents(FILE_PATH, ref=BRANCH)
+        datos = json.loads(contenido.decoded_content.decode())
+        return datos, contenido.sha
+    except Exception as e:
+        print(f"Error leyendo rangos desde GitHub: {e}")
+        return {}, None
+
+def guardar_rangos_github(rangos_dict, sha, mensaje="Actualización de rangos"):
+    contenido_nuevo = json.dumps(rangos_dict, ensure_ascii=False, indent=2)
+    try:
+        if sha:
+            repo.update_file(FILE_PATH, mensaje, contenido_nuevo, sha, branch=BRANCH)
+        else:
+            # Si no existe el archivo, crea uno nuevo
+            repo.create_file(FILE_PATH, mensaje, contenido_nuevo, branch=BRANCH)
+        return True
+    except Exception as e:
+        print(f"Error guardando rangos en GitHub: {e}")
+        return False
+
+# Token secreto para controlar acceso a !setrango
 SECRET_TOKEN = os.getenv("KEYTW")
 
 @app.route("/")
 def home():
-    return "API Rangos con MongoDB activa."
+    return "API Rangos con commits a GitHub activa."
 
 @app.route("/rango")
 def obtener_rango():
     juego_actual = request.args.get("game", "").strip()
     if not juego_actual:
-        return "Falta el parámetro ?game=NombreDelJuego"
+        return "Error al obtener el juego nephuLost"
 
-    rango_doc = collection.find_one({"juego": {"$regex": f"^{juego_actual}$", "$options": "i"}})
-    if rango_doc:
-        return f"El rango actual de Nephu en {rango_doc['juego']} ➜ {rango_doc['rango']}"
+    rangos, _ = leer_rangos_github()
+    
+    for juego, rango in rangos.items():
+        if juego.lower() == juego_actual.lower():
+            return f"El rango actual de Nephu en {juego} es ➜ {rango}"
 
-    # Si no está, mostrar todos
-    todos = list(collection.find({}))
-    respuesta = [f"{d['juego']} ➜ {d['rango']}" for d in todos]
+   
+    respuesta = [f"{j} ➜ {r}" for j, r in rangos.items()]
     return " | ".join(respuesta)
 
 @app.route("/setrango", methods=["GET", "POST"])
@@ -37,18 +70,20 @@ def set_rango():
     nuevo_rango = request.args.get("rango")
 
     if token != SECRET_TOKEN:
-        return "No autorizado."
+        return "Oye, no puedes hacer eso nephuHmm"
 
     if not juego or not nuevo_rango:
-        return "Faltan parámetros: game y rango"
+        return "Faltan parámetros: game y rango nephuDerp"
 
-    # Upsert: inserta si no existe, actualiza si existe
-    collection.update_one(
-        {"juego": {"$regex": f"^{juego}$", "$options": "i"}},
-        {"$set": {"juego": juego, "rango": nuevo_rango}},
-        upsert=True
-    )
-    return f"✅ Rango de {juego} actualizado a: {nuevo_rango}"
+    rangos, sha = leer_rangos_github()
+    rangos[juego] = nuevo_rango
+
+    exito = guardar_rangos_github(rangos, sha, mensaje=f"Actualización rango {juego}")
+
+    if exito:
+        return f"Rango de {juego} actualizado a: {nuevo_rango}"
+    else:
+        return "Error al actualizar el juego nephuLost"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
