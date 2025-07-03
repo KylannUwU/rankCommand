@@ -1,8 +1,16 @@
 {
-  "Overwatch 2": "Tanque: N/A Dps: N/A Healer: Platino 5 nephuEvil",
-  "Marvel Rivals": "Platino I nephuRage",
-  "Valorant": "Diamante I nephuGun",
-  "League Of Legends": "Flex: Esmeralda I nephuFine | Solo/Duo: Esmeralda II nephuLero",
-  "TeamFight Tactics": "Duo: Unranked nephuBless | Individual: Unranked nephuMlem",
-  "$(game)": "$(1:)}"
+  "rangos": {
+    "Overwatch 2": "Tanque: N/A Dps: N/A Healer: Platino 5",
+    "Marvel Rivals": "Platino",
+    "Valorant": "Diamante I",
+    "League Of Legends": "Flex: Esmeralda I | Solo/Duo: Esmeralda II",
+    "TeamFight Tactics": "Duo: Unranked | Individual: Unranked"
+  },
+  "emotes": {
+    "valorant": "nephuGun",
+    "overwatch 2": "nephuEvil",
+    "marvel rivals": "nephuRage",
+    "league of legends": "nephuFine",
+    "teamfight tactics": "nephuMlem"
+  }
 }
