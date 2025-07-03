@@ -6,21 +6,14 @@ import os
 app = Flask(__name__)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
-    raise ValueError("La variable de entorno GITHUB_TOKEN no está definida")
-
 SECRET_TOKEN = os.getenv("KEYTW")
-if not SECRET_TOKEN:
-    raise ValueError("La variable de entorno KEYTW no está definida")
 
-# Fijos acá:
 REPO_NAME = "KylannUwU/rankCommand"
 BRANCH = "main"
+FILE_PATH = "rangos.json"
 
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
-
-FILE_PATH = "rangos.json"
 
 def leer_rangos_github():
     try:
@@ -31,8 +24,8 @@ def leer_rangos_github():
         print(f"Error leyendo rangos desde GitHub: {e}")
         return {}, None
 
-def guardar_rangos_github(rangos_dict, sha, mensaje="Actualización de rangos"):
-    contenido_nuevo = json.dumps(rangos_dict, ensure_ascii=False, indent=2)
+def guardar_rangos_github(datos, sha, mensaje="Actualización de rangos"):
+    contenido_nuevo = json.dumps(datos, ensure_ascii=False, indent=2)
     try:
         if sha:
             repo.update_file(FILE_PATH, mensaje, contenido_nuevo, sha, branch=BRANCH)
@@ -53,35 +46,89 @@ def obtener_rango():
     if not juego_actual:
         return "Falta el parámetro ?game=NombreDelJuego"
 
-    rangos, _ = leer_rangos_github()
+    datos, _ = leer_rangos_github()
+    rangos = datos.get("rangos", {})
+    emotes = datos.get("emotes", {})
+
+    def agregar_emote(juego, rango):
+        emote = emotes.get(juego.lower(), "")
+        return f"{rango} {emote}" if emote else rango
+
     for juego, rango in rangos.items():
         if juego.lower() == juego_actual.lower():
-            return f"El rango actual de Nephu en {juego} ➜ {rango}"
+            rango_emotivo = agregar_emote(juego, rango)
+            return f"El rango actual de Nephu en {juego} ➜ {rango_emotivo}"
 
-    respuesta = [f"{j} ➜ {r}" for j, r in rangos.items()]
+    # Si no está, mostrar todos con emotes
+    respuesta = [
+        f"{j} ➜ {agregar_emote(j, r)}"
+        for j, r in rangos.items()
+    ]
     return " | ".join(respuesta)
 
 @app.route("/setrango", methods=["GET", "POST"])
 def set_rango():
     token = request.args.get("token")
-    juego = request.args.get("game")
-    nuevo_rango = request.args.get("rango")
+    data = request.args.get("data", "")
 
     if token != SECRET_TOKEN:
         return "No autorizado."
 
+    if "," not in data:
+        return "❌ Formato incorrecto. Usa: juego, rango"
+
+    juego, nuevo_rango = [x.strip() for x in data.split(",", 1)]
+
     if not juego or not nuevo_rango:
-        return "Faltan parámetros: game y rango"
+        return "❌ Faltan datos. Asegúrate de escribir: juego, rango"
 
-    rangos, sha = leer_rangos_github()
-    rangos[juego] = nuevo_rango
+    datos, sha = leer_rangos_github()
+    if "rangos" not in datos:
+        datos["rangos"] = {}
 
-    exito = guardar_rangos_github(rangos, sha, mensaje=f"Actualización rango {juego}")
+    datos["rangos"][juego] = nuevo_rango
+
+    exito = guardar_rangos_github(datos, sha, mensaje=f"Actualización rango {juego}")
 
     if exito:
         return f"✅ Rango de {juego} actualizado a: {nuevo_rango}"
     else:
         return "Error actualizando rangos en GitHub."
+
+@app.route("/addrango", methods=["GET", "POST"])
+def add_rango():
+    token = request.args.get("token")
+    data = request.args.get("data", "")
+
+    if token != SECRET_TOKEN:
+        return "No autorizado."
+
+    partes = [x.strip() for x in data.split(",", 2)]
+    if len(partes) != 3:
+        return "❌ Formato incorrecto. Usa: juego, rango, emote"
+
+    juego, nuevo_rango, nuevo_emote = partes
+
+    if not juego or not nuevo_rango or not nuevo_emote:
+        return "❌ Faltan datos. Asegúrate de escribir: juego, rango, emote"
+
+    datos, sha = leer_rangos_github()
+    if "rangos" not in datos:
+        datos["rangos"] = {}
+    if "emotes" not in datos:
+        datos["emotes"] = {}
+
+    # Añade juego + rango
+    datos["rangos"][juego] = nuevo_rango
+    # Añade o actualiza emote
+    datos["emotes"][juego.lower()] = nuevo_emote
+
+    exito = guardar_rangos_github(datos, sha, mensaje=f"Agregado rango y emote para {juego}")
+
+    if exito:
+        return f"✅ Juego {juego} añadido con rango y emote."
+    else:
+        return "Error guardando juego y emote en GitHub."
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
