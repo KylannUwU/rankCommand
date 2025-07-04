@@ -12,5 +12,15 @@
     "marvel rivals": "nephuRage",
     "league of legends": "nephuFine",
     "teamfight tactics": "nephuMlem"
+  },
+  "alias": {
+    "lol": "League Of Legends",
+    "league": "League Of Legends",
+    "ow": "Overwatch 2",
+    "overwatch": "Overwatch 2",
+    "over": "Overwatch 2",
+    "tft": "TeamFight Tactics",
+    "marvel": "Marvel Rivals",
+    "rivals": "Marvel Rivals"
   }
 }
