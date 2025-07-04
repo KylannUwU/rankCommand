@@ -46,33 +46,27 @@ def obtener_rango():
     datos, _ = leer_rangos_github()
     rangos = datos.get("rangos", {})
     emotes = datos.get("emotes", {})
+    alias_map = datos.get("alias", {})
 
     def agregar_emote(juego, rango):
         emote = emotes.get(juego.lower(), "")
         return f"{rango} {emote}" if emote else rango
 
-    juego_encontrado = None
-
-    # Primero: buscar si el mensaje contiene algún juego de la lista
     query_lower = query.lower()
-    for juego in rangos:
+
+    # Buscar alias en la query
+    for alias, juego_real in alias_map.items():
+        if alias.lower() in query_lower:
+            rango = rangos.get(juego_real)
+            if rango:
+                return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango)}"
+
+    # Buscar nombre exacto del juego en el query
+    for juego, rango in rangos.items():
         if juego.lower() in query_lower:
-            juego_encontrado = juego
-            break
+            return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango)}"
 
-    # Segundo: si no hay query o no coincide con nada, usar juego actual si viene desde un bot
-    if not juego_encontrado and not query:
-        # Aquí puedes usar una lógica más completa para detectar el juego desde una variable externa
-        # Por ahora asumimos que se pasará ?game=Nombre si viene de StreamElements
-        juego_encontrado = None  # no se encontró nada
-
-    # Si encontramos juego (ya sea por mensaje o por juego actual)
-    if juego_encontrado:
-        rango = rangos.get(juego_encontrado)
-        rango_emotivo = agregar_emote(juego_encontrado, rango)
-        return f"El rango actual de Nephu en {juego_encontrado} ➜ {rango_emotivo}"
-
-    # Si no encontramos nada, mostrar todos
+    # Si nada coincide, mostrar todos
     respuesta = [
         f"{j} ➜ {agregar_emote(j, r)}"
         for j, r in rangos.items()
