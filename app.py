@@ -42,7 +42,9 @@ def home():
 
 @app.route("/rango")
 def obtener_rango():
-    query = request.args.get("game", "").strip()
+    user_game = request.args.get("user_game", "").strip().lower()
+    stream_game = request.args.get("stream_game", "").strip().lower()
+
     datos, _ = leer_rangos_github()
     rangos = datos.get("rangos", {})
     emotes = datos.get("emotes", {})
@@ -52,26 +54,38 @@ def obtener_rango():
         emote = emotes.get(juego.lower(), "")
         return f"{rango} {emote}" if emote else rango
 
-    query_lower = query.lower()
+    def buscar_juego(query_lower):
+        # Buscar alias
+        for alias, juego_real in alias_map.items():
+            if alias.lower() in query_lower:
+                rango = rangos.get(juego_real)
+                if rango:
+                    return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango)}"
+        # Buscar nombre exacto
+        for juego, rango in rangos.items():
+            if juego.lower() in query_lower:
+                return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango)}"
+        return None
 
-    # Buscar alias en la query
-    for alias, juego_real in alias_map.items():
-        if alias.lower() in query_lower:
-            rango = rangos.get(juego_real)
-            if rango:
-                return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango)}"
+    # 1️⃣ Intentar con lo que escribió el usuario
+    if user_game:
+        resultado = buscar_juego(user_game)
+        if resultado:
+            return resultado
 
-    # Buscar nombre exacto del juego en el query
-    for juego, rango in rangos.items():
-        if juego.lower() in query_lower:
-            return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango)}"
+    # 2️⃣ Si no hay, usar el juego en stream
+    if stream_game:
+        resultado = buscar_juego(stream_game)
+        if resultado:
+            return resultado
 
-    # Si nada coincide, mostrar todos
+    # 3️⃣ Si nada coincide, mostrar todos
     respuesta = [
         f"{j} ➜ {agregar_emote(j, r)}"
         for j, r in rangos.items()
     ]
     return " | ".join(respuesta)
+
 
 
 
