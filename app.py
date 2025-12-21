@@ -2,6 +2,7 @@ from flask import Flask, request
 from github import Github
 import json
 import os
+import requests  # ← Añadido
 
 app = Flask(__name__)
 
@@ -36,6 +37,19 @@ def guardar_rangos_github(datos, sha, mensaje="Actualización de rangos"):
         print(f"Error guardando rangos: {e}")
         return False
 
+def obtener_contenido_externo(rango):
+    """Obtiene contenido de una URL si el rango es una URL"""
+    if rango.startswith("http://") or rango.startswith("https://"):
+        try:
+            r = requests.get(rango, timeout=5)  # timeout para evitar bloqueos
+            if r.ok:
+                return r.text.strip()
+            else:
+                return "❌ Error al obtener el rango externo."
+        except Exception as e:
+            return f"❌ Error externo: {e}"
+    return rango
+
 @app.route("/")
 def home():
     return "API Rangos con commits a GitHub activa."
@@ -58,13 +72,15 @@ def obtener_rango():
         # Buscar alias
         for alias, juego_real in alias_map.items():
             if alias.lower() in query_lower:
-                rango = rangos.get(juego_real)
-                if rango:
-                    return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango)}"
+                rango_raw = rangos.get(juego_real)
+                if rango_raw:
+                    rango_final = obtener_contenido_externo(rango_raw)  # ← Añadido
+                    return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango_final)}"
         # Buscar nombre exacto
-        for juego, rango in rangos.items():
+        for juego, rango_raw in rangos.items():
             if juego.lower() in query_lower:
-                return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango)}"
+                rango_final = obtener_contenido_externo(rango_raw)  # ← Añadido
+                return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango_final)}"
         return None
 
     # 1️⃣ Intentar con lo que escribió el usuario
@@ -81,12 +97,10 @@ def obtener_rango():
 
     # 3️⃣ Si nada coincide, mostrar todos
     respuesta = [
-        f"{j} ➜ {agregar_emote(j, r)}"
+        f"{j} ➜ {agregar_emote(j, obtener_contenido_externo(r))}"  # ← Añadido
         for j, r in rangos.items()
     ]
     return " | ".join(respuesta)
-
-
 
 
 @app.route("/setrango", methods=["GET", "POST"])
