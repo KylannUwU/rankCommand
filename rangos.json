@@ -1,6 +1,6 @@
 {
   "rangos": {
-    "Overwatch 2": "Ranked: Tanque: N/A Dps: Oro 2 Healer: Oro 2 | Stadium: Tanque: Contender 3 Dps: Novice 1 Healer: N/A",
+    "Overwatch": "Ranked: Tanque: N/A Dps: Plata 2 Healer: Plata 3 | Stadium: Tanque: N/A Dps: N/A Healer: N/A",
     "Marvel Rivals": "Platino 1",
     "Valorant": "Unrated",
     "League Of Legends": "Flex: Esmeralda I | Solo/Duo: Esmeralda II",
@@ -8,7 +8,7 @@
   },
   "emotes": {
     "valorant": "nephuGun",
-    "overwatch 2": "nephuEvil",
+    "overwatch": "nephuEvil",
     "marvel rivals": "nephuRage",
     "league of legends": "nephuFine",
     "teamfight tactics": "nephuMlem"
@@ -16,9 +16,9 @@
   "alias": {
     "lol": "League Of Legends",
     "league": "League Of Legends",
-    "ow": "Overwatch 2",
-    "overwatch": "Overwatch 2",
-    "over": "Overwatch 2",
+    "ow": "Overwatch",
+    "overwatch": "Overwatch",
+    "over": "Overwatch",
     "tft": "TeamFight Tactics",
     "marvel": "Marvel Rivals",
     "rivals": "Marvel Rivals",
