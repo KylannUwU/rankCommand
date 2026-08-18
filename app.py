@@ -13,8 +13,58 @@ REPO_NAME = "KylannUwU/rankCommand"
 BRANCH = "main"
 FILE_PATH = "rangos.json"
 
+OVERWATCH_BATTLETAG = os.getenv("OVERWATCH_BATTLETAG", "Nephtunie-1299")
+
 g = Github(GITHUB_TOKEN)
 repo = g.get_repo(REPO_NAME)
+
+DIVISIONES_ES = {
+    "bronze": "Bronce",
+    "silver": "Plata",
+    "gold": "Oro",
+    "platinum": "Platino",
+    "diamond": "Diamante",
+    "master": "Master",
+    "grandmaster": "Grand Master",
+    "champion": "Champion"
+}
+
+ROLES_OW = [
+    ("tank", "Tanque"),
+    ("damage", "Dps"),
+    ("support", "Healer")
+]
+
+
+def obtener_rango_overwatch():
+    """Consulta OverFast API y devuelve el rango de Overwatch formateado como texto plano."""
+    try:
+        url = f"https://overfast-api.tekrop.fr/players/{OVERWATCH_BATTLETAG}/summary"
+        response = requests.get(url, timeout=8)
+
+        if not response.ok:
+            print(f"❌ Error de OverFast API: {response.status_code}")
+            return "❌ Error al obtener el rango de Overwatch."
+
+        data = response.json()
+        competitive_pc = data.get("competitive", {}).get("pc") or {}
+
+        partes = []
+        for clave_api, etiqueta in ROLES_OW:
+            rol_data = competitive_pc.get(clave_api)
+            if rol_data and rol_data.get("division"):
+                division = DIVISIONES_ES.get(rol_data["division"], rol_data["division"].capitalize())
+                tier = rol_data.get("tier", "")
+                partes.append(f"{etiqueta}: {division} {tier}")
+            else:
+                partes.append(f"{etiqueta}: N/A")
+
+        return " ".join(partes)
+
+    except Exception as e:
+        print(f"❌ Error consultando OverFast API: {e}")
+        return "❌ Error al obtener el rango de Overwatch."
+
 
 def leer_rangos_github():
     try:
@@ -41,7 +91,7 @@ def obtener_contenido_externo(rango):
     """Obtiene contenido de una URL si el rango es una URL"""
     if rango.startswith("http://") or rango.startswith("https://"):
         try:
-            r = requests.get(rango, timeout=5)  # timeout para evitar bloqueos
+            r = requests.get(rango, timeout=5)  
             if r.ok:
                 return r.text.strip()
             else:
@@ -68,36 +118,36 @@ def obtener_rango():
         emote = emotes.get(juego.lower(), "")
         return f"{rango} {emote}" if emote else rango
 
+    def obtener_rango_juego(juego_real, rango_raw):
+        if juego_real.lower() == "overwatch":
+            return obtener_rango_overwatch()
+        return obtener_contenido_externo(rango_raw)
+
     def buscar_juego(query_lower):
-        # Buscar alias
         for alias, juego_real in alias_map.items():
             if alias.lower() in query_lower:
                 rango_raw = rangos.get(juego_real)
-                if rango_raw:
-                    rango_final = obtener_contenido_externo(rango_raw)  # ← Añadido
+                if rango_raw is not None or juego_real.lower() == "overwatch":
+                    rango_final = obtener_rango_juego(juego_real, rango_raw)
                     return f"El rango actual de Nephu en {juego_real} ➜ {agregar_emote(juego_real, rango_final)}"
-        # Buscar nombre exacto
         for juego, rango_raw in rangos.items():
             if juego.lower() in query_lower:
-                rango_final = obtener_contenido_externo(rango_raw)  # ← Añadido
+                rango_final = obtener_rango_juego(juego, rango_raw)
                 return f"El rango actual de Nephu en {juego} ➜ {agregar_emote(juego, rango_final)}"
         return None
 
-    # 1️⃣ Intentar con lo que escribió el usuario
     if user_game:
         resultado = buscar_juego(user_game)
         if resultado:
             return resultado
 
-    # 2️⃣ Si no hay, usar el juego en stream
     if stream_game:
         resultado = buscar_juego(stream_game)
         if resultado:
             return resultado
 
-    # 3️⃣ Si nada coincide, mostrar todos
     respuesta = [
-        f"{j} ➜ {agregar_emote(j, obtener_contenido_externo(r))}"  # ← Añadido
+        f"{j} ➜ {agregar_emote(j, obtener_rango_juego(j, r))}"
         for j, r in rangos.items()
     ]
     return " | ".join(respuesta)
@@ -122,7 +172,6 @@ def set_rango():
     datos, sha = leer_rangos_github()
     rangos = datos.get("rangos", {})
 
-    # Buscar juego en rangos ignorando mayúsculas/minúsculas
     juego_clave = None
     for clave in rangos.keys():
         if clave.lower() == juego_input.lower():
@@ -130,10 +179,8 @@ def set_rango():
             break
 
     if juego_clave:
-        # Actualizar rango en la clave encontrada
         datos["rangos"][juego_clave] = nuevo_rango
     else:
-        # Si no existe, agregar con el nombre tal cual lo escribió el usuario
         if "rangos" not in datos:
             datos["rangos"] = {}
         datos["rangos"][juego_input] = nuevo_rango
@@ -169,9 +216,7 @@ def add_rango():
     if "emotes" not in datos:
         datos["emotes"] = {}
 
-    # Añade juego + rango
     datos["rangos"][juego] = nuevo_rango
-    # Añade o actualiza emote
     datos["emotes"][juego.lower()] = nuevo_emote
 
     exito = guardar_rangos_github(datos, sha, mensaje=f"Agregado rango y emote para {juego}")
